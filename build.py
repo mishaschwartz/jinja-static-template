@@ -39,6 +39,8 @@ def build(build_directory, config_files, clean=False):
             f"These config files could not be found: {set(config_files) - set(ok_files)}"
         )
 
+    configs = {section: dict(configs.items(section)) for section in configs.sections()}
+
     for template in env.list_templates(filter_func=filter_site_templates):
         build_destination = build_directory / (TEMPLATE_PATH / template).relative_to(
             SITE_PATH
