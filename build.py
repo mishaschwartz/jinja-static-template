@@ -15,7 +15,7 @@ def filter_site_templates(template, extensions=("js", "html", "css")):
     abs_filepath = TEMPLATE_PATH / template
     basename = Path(template).name
     return (
-        SITE_PATH == os.path.commonpath((abs_filepath, SITE_PATH))
+        str(SITE_PATH) == os.path.commonpath((abs_filepath, SITE_PATH))
         and "." in basename
         and basename.rsplit(".", 1)[1] in extensions
     )
