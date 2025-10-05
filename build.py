@@ -1,19 +1,19 @@
 import configparser
 import os
+from pathlib import Path
 import shutil
 import argparse
 
 from jinja2 import FileSystemLoader, Environment, select_autoescape
 
-
-THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-TEMPLATE_PATH = os.path.join(THIS_DIR, "templates")
-SITE_PATH = os.path.join(TEMPLATE_PATH, "site")
+THIS_DIR = Path(__file__).parent.absolute()
+TEMPLATE_PATH = THIS_DIR / "templates"
+SITE_PATH = TEMPLATE_PATH / "site"
 
 
 def filter_site_templates(template, extensions=("js", "html", "css")):
-    abs_filepath = os.path.join(TEMPLATE_PATH, template)
-    basename = os.path.basename(template)
+    abs_filepath = TEMPLATE_PATH / template
+    basename = Path(template).name
     return (
         SITE_PATH == os.path.commonpath((abs_filepath, SITE_PATH))
         and "." in basename
@@ -22,6 +22,7 @@ def filter_site_templates(template, extensions=("js", "html", "css")):
 
 
 def build(build_directory, config_files, clean=False):
+    build_directory = Path(build_directory)
     if clean:
         shutil.rmtree(build_directory, ignore_errors=True)
     env = Environment(
@@ -29,9 +30,7 @@ def build(build_directory, config_files, clean=False):
         autoescape=select_autoescape(enabled_extensions=("html", "js", "css")),
     )
 
-    shutil.copytree(
-        os.path.join(THIS_DIR, "static"), build_directory, dirs_exist_ok=True
-    )
+    shutil.copytree(THIS_DIR / "static", build_directory, dirs_exist_ok=True)
 
     configs = configparser.ConfigParser()
     ok_files = configs.read(config_files)
@@ -41,11 +40,10 @@ def build(build_directory, config_files, clean=False):
         )
 
     for template in env.list_templates(filter_func=filter_site_templates):
-        build_destination = os.path.join(
-            build_directory,
-            os.path.relpath(os.path.join(TEMPLATE_PATH, template), SITE_PATH),
+        build_destination = build_directory / (TEMPLATE_PATH / template).relative_to(
+            SITE_PATH
         )
-        os.makedirs(os.path.dirname(build_destination), exist_ok=True)
+        build_destination.parent.mkdir(exist_ok=True)
 
         with open(build_destination, "w") as f:
             f.write(env.get_template(template).render(**configs))
@@ -57,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-b",
         "--build-directory",
-        default=os.path.join(THIS_DIR, "build"),
+        default=THIS_DIR / "build",
         help="location on disk to write built templates to.",
     )
 
@@ -65,7 +63,8 @@ if __name__ == "__main__":
         "-g",
         "--config-files",
         action="append",
-        help="TOML config file",
+        default=[],
+        help="config file",
     )
 
     parser.add_argument(
